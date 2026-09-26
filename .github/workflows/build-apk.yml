@@ -23,39 +23,34 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle
+      - name: Setup Gradle 8.4
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.4'
 
-      - name: Prepare Keystore and Environment
+      - name: Build Android Debug APK
         run: |
-          if [ -f "debug.keystore.base64" ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
-          else
-            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          fi
-          if [ ! -f ".env" ] && [ -f ".env.example" ]; then
-            cp .env.example .env
-          fi
-
-      - name: Generate Wrapper and Build APK
-        run: |
-          echo "Building APK using system Gradle 8.4..."
-          if [ -d "android/app" ]; then
+          set -e
+          # Go to android directory if project is in android/ subfolder
+          if [ -d "android" ] && [ -f "android/build.gradle.kts" ]; then
             cd android
-            gradle :app:assembleDebug --no-daemon --stacktrace || gradle assembleDebug --no-daemon --stacktrace
-            cd ..
-          else
-            gradle :app:assembleDebug --no-daemon --stacktrace || gradle assembleDebug --no-daemon --stacktrace
           fi
 
-      - name: Locate and Rename APK
+          echo "Current directory: $(pwd)"
+          
+          # Generate fresh gradle wrapper to prevent any missing jar errors
+          gradle wrapper --gradle-version 8.4
+          chmod +x ./gradlew || true
+
+          # Build debug APK
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Collect and Prepare APK
         run: |
           mkdir -p release_apk
-          find . -name "*debug.apk" -o -name "*.apk" | head -n 1 | xargs -I {} cp {} release_apk/Sensei.apk
+          find . -name "*.apk" -type f -exec cp {} release_apk/Sensei.apk \;
+          echo "Found APK:"
           ls -la release_apk/
-          echo "APK successfully built at release_apk/Sensei.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4

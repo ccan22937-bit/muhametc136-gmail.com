@@ -5,8 +5,12 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
+    name: Build Sensei APK
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +26,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '9.3.1'
+          gradle-version: '8.4'
 
       - name: Prepare Keystore and Environment
         run: |
@@ -35,11 +39,43 @@ jobs:
             cp .env.example .env
           fi
 
+      - name: Grant Execute Permission for Gradlew
+        run: |
+          if [ -f "./gradlew" ]; then chmod +x ./gradlew; fi
+          if [ -f "./android/gradlew" ]; then chmod +x ./android/gradlew; fi
+
       - name: Build Debug APK
-        run: gradle :app:assembleDebug --no-daemon --stacktrace
+        run: |
+          if [ -f "./gradlew" ]; then
+            ./gradlew :app:assembleDebug --no-daemon --stacktrace
+          elif [ -f "./android/gradlew" ]; then
+            cd android && ./gradlew :app:assembleDebug --no-daemon --stacktrace
+          else
+            gradle :app:assembleDebug --no-daemon --stacktrace
+          fi
+
+      - name: Locate and Rename APK
+        run: |
+          mkdir -p release_apk
+          find . -name "*.apk" -type f -exec cp {} release_apk/Sensei.apk \;
+          echo "APK successfully prepared at release_apk/Sensei.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: App-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: Sensei-APK
+          path: release_apk/Sensei.apk
+          retention-days: 30
+
+      - name: Publish Direct APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: latest
+          name: "Sensei Canlı APK v1.0.0"
+          body: "🐊 Sensei BingeLingo Android Uygulaması APK Dosyası. Doğrudan telefonunuza indirip yükleyin!"
+          draft: false
+          prerelease: false
+          files: release_apk/Sensei.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

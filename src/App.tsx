@@ -1,117 +1,130 @@
-import React, { useState } from 'react';
-import { TabType, UserStats } from './types';
+import React, { useState, useEffect } from 'react';
 import { TopBar } from './components/TopBar';
 import { BottomNav } from './components/BottomNav';
 import { HomeScreen } from './screens/HomeScreen';
-import { LessonScreen } from './screens/LessonScreen';
 import { VoiceCoachScreen } from './screens/VoiceCoachScreen';
 import { AlphabetScreen } from './screens/AlphabetScreen';
-import { ProfileScreen } from './screens/ProfileScreen';
-import { GitHubApkModal } from './screens/GitHubApkModal';
+import { RoadmapScreen } from './screens/RoadmapScreen';
+import { LessonPracticeScreen } from './screens/LessonPracticeScreen';
+import { ShopModal } from './screens/ShopModal';
+import { ProfileModal } from './screens/ProfileModal';
+import { startNotificationScheduler } from './utils/notifications';
 
 export function App() {
-  const [currentTab, setCurrentTab] = useState<TabType>('home');
-  const [activeLesson, setActiveLesson] = useState<{ unitId: string; levelId: string } | null>(null);
-  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
+  const [currentTab, setCurrentTab] = useState<string>('home');
+  const [activeWords, setActiveWords] = useState<string[] | null>(null);
+  const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const [stats, setStats] = useState<UserStats>({
-    xp: 280,
-    streak: 4,
-    gems: 150,
-    hearts: 5,
-    completedLessons: ['l1-1', 'l1-2'],
-    level: 2,
-    selectedLanguage: 'en',
-    dailyGoal: 50,
-    todayMinutes: 12
-  });
+  const [stars, setStars] = useState(11);
+  const [maxStars, setMaxStars] = useState(12);
+  const [hearts, setHearts] = useState(10);
+  const [maxHearts, setMaxHearts] = useState(10);
 
-  const handleStartLesson = (unitId: string, levelId: string) => {
-    setActiveLesson({ unitId, levelId });
-  };
+  useEffect(() => {
+    startNotificationScheduler();
+  }, []);
 
-  const handleFinishLesson = (xpEarned: number) => {
-    if (activeLesson) {
-      setStats(prev => ({
-        ...prev,
-        xp: prev.xp + xpEarned,
-        gems: prev.gems + 10,
-        completedLessons: prev.completedLessons.includes(activeLesson.levelId)
-          ? prev.completedLessons
-          : [...prev.completedLessons, activeLesson.levelId]
-      }));
+  const handleTabChange = (tab: string) => {
+    if (tab === 'shop') {
+      setIsShopOpen(true);
+      return;
     }
-    setActiveLesson(null);
+    if (tab === 'profile') {
+      setIsProfileOpen(true);
+      return;
+    }
+    setCurrentTab(tab);
   };
 
-  const handleSelectLanguage = () => {
-    const languages: ('en' | 'de' | 'es' | 'fr' | 'ja' | 'ru')[] = ['en', 'de', 'es', 'fr', 'ja', 'ru'];
-    const nextIdx = (languages.indexOf(stats.selectedLanguage) + 1) % languages.length;
-    setStats(prev => ({ ...prev, selectedLanguage: languages[nextIdx] }));
+  const handleStartLesson = (words: string[]) => {
+    setActiveWords(words);
   };
 
-  if (activeLesson) {
+  const handleFinishLesson = (xpEarned: number, starsEarned: number) => {
+    setStars(prev => Math.min(maxStars, prev + starsEarned));
+    setActiveWords(null);
+  };
+
+  const handleClaimDailyGift = () => {
+    setHearts(10);
+  };
+
+  const handleBuyHeart = () => {
+    if (stars >= 5 && hearts < 10) {
+      setStars(prev => prev - 5);
+      setHearts(prev => Math.min(10, prev + 1));
+    }
+  };
+
+  if (activeWords) {
     return (
-      <LessonScreen
-        unitId={activeLesson.unitId}
-        levelId={activeLesson.levelId}
-        onFinish={handleFinishLesson}
-        onExit={() => setActiveLesson(null)}
+      <LessonPracticeScreen
+        words={activeWords}
+        targetLang="RU"
+        onComplete={handleFinishLesson}
+        onExit={() => setActiveWords(null)}
       />
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      <TopBar
-        stats={stats}
-        onOpenGitHubModal={() => setIsGitHubModalOpen(true)}
-        onSelectLanguage={handleSelectLanguage}
-      />
+    <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans">
+      
+      {/* 1. Exact TopBar from sensei-7 */}
+      <TopBar />
 
-      <main className="flex-1">
+      {/* 2. Main Content Screens */}
+      <main className="flex-1 max-w-md mx-auto w-full">
         {currentTab === 'home' && (
           <HomeScreen
-            stats={stats}
             onStartLesson={handleStartLesson}
-            onOpenVoiceCoach={() => setCurrentTab('voice')}
-            onOpenGitHubModal={() => setIsGitHubModalOpen(true)}
+            onStartTest={() => handleStartLesson(['Привет', 'Как дела', 'Спасибо'])}
           />
         )}
 
-        {currentTab === 'learn' && (
-          <HomeScreen
-            stats={stats}
-            onStartLesson={handleStartLesson}
-            onOpenVoiceCoach={() => setCurrentTab('voice')}
-            onOpenGitHubModal={() => setIsGitHubModalOpen(true)}
+        {currentTab === 'voice' && <VoiceCoachScreen />}
+
+        {currentTab === 'lessons' && (
+          <RoadmapScreen
+            stars={stars}
+            maxStars={maxStars}
+            hearts={hearts}
+            maxHearts={maxHearts}
+            onBack={() => setCurrentTab('home')}
+            onSelectLevel={(lvl) => handleStartLesson(['Здравствуйте', 'Доброе утро', 'Пожалуйста'])}
           />
         )}
 
-        {currentTab === 'voice' && (
-          <VoiceCoachScreen
-            onOpenGitHubModal={() => setIsGitHubModalOpen(true)}
-          />
-        )}
-
-        {currentTab === 'alphabet' && (
-          <AlphabetScreen />
-        )}
-
-        {currentTab === 'profile' && (
-          <ProfileScreen
-            stats={stats}
-            onOpenGitHubModal={() => setIsGitHubModalOpen(true)}
+        {currentTab === 'text' && (
+          <AlphabetScreen
+            onClose={() => setCurrentTab('home')}
+            selectedLanguage="ru"
           />
         )}
       </main>
 
-      <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
+      {/* 3. Exact BottomNav with 6 icons */}
+      <BottomNav currentTab={currentTab} onTabChange={handleTabChange} />
 
-      <GitHubApkModal
-        isOpen={isGitHubModalOpen}
-        onClose={() => setIsGitHubModalOpen(false)}
+      {/* 4. Mağaza / Shop Modal */}
+      <ShopModal
+        isOpen={isShopOpen}
+        onClose={() => setIsShopOpen(false)}
+        hearts={hearts}
+        stars={stars}
+        onClaimDailyGift={handleClaimDailyGift}
+        onBuyHeart={handleBuyHeart}
       />
+
+      {/* 5. Profil & Hesap Modal */}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        userName="Cevdet Can"
+        userEmail="ccan22937@gmail.com"
+      />
+
     </div>
   );
 }

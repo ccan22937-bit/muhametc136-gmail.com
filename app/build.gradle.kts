@@ -63,5 +63,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
 
+    // Google ML Kit On-Device Translation (Cihaz İçi Sınırsız & Ücretsiz Çeviri Motoru)
+    implementation("com.google.mlkit:translate:17.0.2")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

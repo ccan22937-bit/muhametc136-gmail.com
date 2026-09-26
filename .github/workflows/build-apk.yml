@@ -13,9 +13,6 @@ jobs:
     name: Build Sensei APK
     runs-on: ubuntu-latest
 
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -26,33 +23,28 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Accept Android Licenses
+      - name: Grant Execute Permissions
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          chmod +x ./gradlew 2>/dev/null || true
+          chmod +x ./android/gradlew 2>/dev/null || true
 
-      - name: Build Android Debug APK
+      - name: Build Android APK
         run: |
           set -e
-          # If files are in android/ directory, switch there
-          if [ -d "android" ] && [ -f "android/build.gradle.kts" ]; then
+          if [ -d "android" ] && [ -f "android/gradlew" ]; then
+            echo "Building from android/ directory..."
             cd android
-          fi
-
-          echo "Working in: $(pwd)"
-          
-          # Use gradle to create wrapper or build directly
-          if [ -f "./gradlew" ]; then
-            chmod +x ./gradlew
             ./gradlew assembleDebug --no-daemon --stacktrace
           else
-            gradle assembleDebug --no-daemon --stacktrace
+            echo "Building from root directory..."
+            ./gradlew assembleDebug --no-daemon --stacktrace
           fi
 
-      - name: Collect Output APK
+      - name: Collect and Rename APK
         run: |
           mkdir -p release_apk
-          find . -name "*debug.apk" -o -name "*.apk" | head -n 1 | xargs -I {} cp {} release_apk/Sensei.apk
-          echo "Built APK located at:"
+          find . -name "*.apk" -type f -exec cp {} release_apk/Sensei.apk \;
+          echo "Generated APK:"
           ls -la release_apk/
 
       - name: Upload APK as Artifact
@@ -68,7 +60,7 @@ jobs:
         with:
           tag_name: v1.0.0
           name: "Sensei Android APK v1.0.0"
-          body: "🐊 Sensei BingeLingo Android Uygulaması. Doğrudan telefonunuza indirip kurabilirsiniz!"
+          body: "🐊 Sensei BingeLingo Android Uygulaması. Doğrudan telefonunuza kurabilirsiniz!"
           draft: false
           prerelease: false
           files: release_apk/Sensei.apk

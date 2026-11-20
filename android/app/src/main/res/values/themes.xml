@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Sensei" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.Sensei" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:statusBarColor">#0b132b</item>
         <item name="android:navigationBarColor">#0b132b</item>
     </style>

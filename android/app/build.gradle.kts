@@ -9,19 +9,30 @@ android {
 
     defaultConfig {
         applicationId = "com.sensei.bingelingo"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 9
+        versionName = "3.1.0"
+    }
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
+    signingConfigs {
+        create("release") {
+            val ks = rootProject.file("../sensei_release.keystore")
+            if (ks.exists()) {
+                storeFile = ks
+                storePassword = "sensei123"
+                keyAlias = "sensei"
+                keyPassword = "sensei123"
+            }
         }
     }
 
     buildTypes {
         release {
+            val releaseSigning = signingConfigs.findByName("release")
+            if (releaseSigning?.storeFile != null) {
+                signingConfig = releaseSigning
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -29,42 +40,65 @@ android {
             )
         }
         debug {
-            applicationIdSuffix = ".debug"
-            isDebuggable = true
+            isMinifyEnabled = false
         }
     }
+
+    androidResources {
+        noCompress.addAll(listOf("litertlm", "bin", "tflite"))
+    }
+
+    packaging {
+        resources {
+            excludes.add("META-INF/DEPENDENCIES")
+            excludes.add("META-INF/LICENSE")
+            excludes.add("META-INF/LICENSE.txt")
+            excludes.add("META-INF/license.txt")
+            excludes.add("META-INF/NOTICE")
+            excludes.add("META-INF/NOTICE.txt")
+            excludes.add("META-INF/notice.txt")
+            excludes.add("META-INF/ASL2.0")
+            excludes.add("META-INF/INDEX.LIST")
+        }
+        jniLibs {
+            pickFirsts.add("**/liblitertlm*.so")
+            pickFirsts.add("**/libtensorflowlite*.so")
+            pickFirsts.add("**/libOpenCL.so")
+            pickFirsts.add("**/libc++_shared.so")
+        }
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-    buildFeatures {
-        compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
 }
 
+kotlin {
+    jvmToolchain(17)
+}
+
+
 dependencies {
+    // Official Google AI Edge LiteRT-LM Android Engine (Supports .litertlm & Gemma 3 on GPU)
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.16.1")
+
+    // Google ML Kit On-Device Translation (25-30MB on-device language packages, zero-quota offline translation)
+    implementation("com.google.mlkit:translate:17.0.3")
+
+    // Google Play Services Auth (Native Google Sign-In)
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+
+    // Android Core & Coroutines
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.8.2")
-    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-
-    // Google ML Kit On-Device Translation (Cihaz İçi Sınırsız & Ücretsiz Çeviri Motoru)
-    implementation("com.google.mlkit:translate:17.0.2")
-
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 }

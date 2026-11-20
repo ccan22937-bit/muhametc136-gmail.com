@@ -2,17 +2,62 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>SenSey BingeLingo - Dil Öğrenme Koçu</title>
-    <meta name="description" content="Her gün seçtiğin kelimelerle, sesli yapay zeka Sensei koçu ve hibrit cümlelerle hızlı ve etkili yabancı dil öğren." />
-    <meta property="og:title" content="SenSey BingeLingo" />
-    <meta property="og:description" content="Her gün seçtiğin kelimelerle, sesli yapay zeka Sensei koçu ve hibrit cümlelerle hızlı ve etkili yabancı dil öğren." />
-    <link rel="manifest" href="/manifest.json" />
+    <title>Sensei Dil Koçu - Gemma-3 Destekli Dil Öğrenme</title>
+    <meta name="description" content="Sensei ile seçtiğiniz kelimelerle, sesli yapay zeka koçu ve konuşma pratiği ile Rusça ve yabancı dilleri öğrenin." />
+    <meta property="og:title" content="Sensei Dil Koçu" />
+    <meta property="og:description" content="Sensei ile seçtiğiniz kelimelerle, sesli yapay zeka koçu ve konuşma pratiği ile Rusça ve yabancı dilleri öğrenin." />
     <meta name="theme-color" content="#10b981" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <script>
+      // Safe Storage fallback for cross-origin iframes
+      try {
+        var _test = '__t_' + Date.now();
+        window.localStorage.setItem(_test, _test);
+        window.localStorage.removeItem(_test);
+      } catch (e) {
+        console.warn('Storage restricted in iframe, using memory storage fallback');
+        var _store = {};
+        var _fakeStorage = {
+          getItem: function(k) { return Object.prototype.hasOwnProperty.call(_store, k) ? _store[k] : null; },
+          setItem: function(k, v) { _store[k] = String(v); },
+          removeItem: function(k) { delete _store[k]; },
+          clear: function() { _store = {}; }
+        };
+        try {
+          Object.defineProperty(window, 'localStorage', { value: _fakeStorage, writable: true, configurable: true });
+          Object.defineProperty(window, 'sessionStorage', { value: _fakeStorage, writable: true, configurable: true });
+        } catch (e2) {}
+      }
+
+      // AI Studio preview iframe environment: suppress benign Vite HMR WebSocket notice
+      (function() {
+        var origError = console.error;
+        console.error = function() {
+          var args = Array.prototype.slice.call(arguments);
+          if (args.length > 0) {
+            var msg = String(args[0] && args[0].message ? args[0].message : args[0]);
+            if (msg.indexOf('WebSocket closed without opened') !== -1) {
+              return; // Benign Vite HMR WebSocket notice ignored in preview environment
+            }
+          }
+          return origError.apply(console, arguments);
+        };
+      })();
+    </script>
   </head>
-  <body class="bg-slate-950 text-slate-100 font-sans antialiased select-none">
-    <div id="root"></div>
+  <body class="bg-[#f7f9fa] text-slate-800 font-sans antialiased select-none">
+    <div id="root">
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f7f9fa;font-family:sans-serif;color:#10b981;">
+        <div style="width:36px;height:36px;border:4px solid #10b981;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:12px;"></div>
+        <div style="font-weight:900;font-size:16px;color:#10b981;letter-spacing:1px;">SENSEI</div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

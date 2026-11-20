@@ -1,4 +1,5 @@
 import React from 'react';
+import babyCrocodileIcon from '../assets/images/baby_crocodile_head_icon_1790450277976.jpg';
 
 interface TopBarProps {
   onLanguageChange?: (lang: string) => void;
@@ -9,11 +10,11 @@ export const TopBar: React.FC<TopBarProps> = () => {
     <header className="sticky top-0 z-30 bg-white border-b border-slate-100 px-3 py-2.5">
       <div className="max-w-md mx-auto flex items-center justify-between gap-1 sm:gap-1.5">
         
-        {/* Left: Crocodile Avatar Badge & TÜ -> RU */}
+        {/* Left: Crocodile Avatar Badge & TÜ -> RU (From Screenshot 3) */}
         <div className="flex items-center gap-1.5">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl p-0.5 bg-gradient-to-tr from-emerald-500 to-lime-400 border border-emerald-400 shadow-xs flex-shrink-0 flex items-center justify-center overflow-hidden">
             <img
-              src="/src/assets/images/baby_crocodile_head_icon_1790450277976.jpg"
+              src={babyCrocodileIcon}
               alt="Sensei"
               className="w-full h-full object-cover rounded-[10px]"
             />
@@ -29,7 +30,7 @@ export const TopBar: React.FC<TopBarProps> = () => {
           </div>
         </div>
 
-        {/* Right Stats & Badges */}
+        {/* Right Stats & Badges (From Screenshot 3) */}
         <div className="flex items-center gap-1 sm:gap-1.5">
           
           {/* 👑 KURUCU */}

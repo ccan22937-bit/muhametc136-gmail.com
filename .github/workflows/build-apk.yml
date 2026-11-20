@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Sensei APK & AAB
 
 on:
   push:
@@ -10,12 +10,17 @@ permissions:
 
 jobs:
   build:
-    name: Build Sensei APK
+    name: Build Real Sensei APK & Play Store AAB
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
@@ -23,46 +28,85 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Grant Execute Permissions
+      - name: Install Web Dependencies & Build Vite App
         run: |
-          chmod +x ./gradlew 2>/dev/null || true
-          chmod +x ./android/gradlew 2>/dev/null || true
+          npm install --no-audit --no-fund
+          npx vite build
 
-      - name: Build Android APK
+      - name: Sync Web Bundle into Android Assets
         run: |
-          set -e
-          if [ -d "android" ] && [ -f "android/gradlew" ]; then
-            echo "Building from android/ directory..."
-            cd android
-            ./gradlew assembleDebug --no-daemon --stacktrace
-          else
-            echo "Building from root directory..."
-            ./gradlew assembleDebug --no-daemon --stacktrace
-          fi
+          rm -rf android/app/src/main/assets
+          mkdir -p android/app/src/main/assets/dist
+          python3 - <<'PY'
+          import os, shutil
+          src_root = 'dist'
+          dst_root = 'android/app/src/main/assets/dist'
+          skip_exts = ('.apk', '.cjs', '.map', '.zip', '.idsig')
+          for root, dirs, files in os.walk(src_root):
+              rel = os.path.relpath(root, src_root)
+              # Exclude chat attachment screenshots/recordings & unused zips
+              dirs[:] = [
+                  d for d in dirs
+                  if not (rel == 'assets' and d == 'aistudio')
+              ]
+              target_dir = dst_root if rel == '.' else os.path.join(dst_root, rel)
+              os.makedirs(target_dir, exist_ok=True)
+              for f in files:
+                  if f.endswith(skip_exts) or 'Screenshot_' in f or 'Screenrecorder-' in f:
+                      continue
+                  shutil.copy2(os.path.join(root, f), os.path.join(target_dir, f))
+          print("Synced android/app/src/main/assets/dist:")
+          for item in sorted(os.listdir(dst_root)):
+              print(" -", item)
+          PY
 
-      - name: Collect and Rename APK
+      - name: Prepare Android Gradle Environment
         run: |
-          mkdir -p release_apk
-          find . -name "*.apk" -type f -exec cp {} release_apk/Sensei.apk \;
-          echo "Generated APK:"
-          ls -la release_apk/
+          rm -f android/local.properties
+          chmod +x android/gradlew
 
-      - name: Upload APK as Artifact
+      - name: Build Signed Release APK & Play Store AAB
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace
+
+      - name: Verify Real Native LiteRT-LM Libraries & Web Bundle inside APK
+        run: |
+          APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
+          AAB_PATH="android/app/build/outputs/bundle/release/app-release.aab"
+          test -f "$APK_PATH"
+          test -f "$AAB_PATH"
+          echo "Checking APK contents..."
+          unzip -l "$APK_PATH" | grep "assets/dist/index\.html"
+          unzip -l "$APK_PATH" | grep "\.so$"
+          mkdir -p release_output
+          cp "$APK_PATH" release_output/Sensei.apk
+          cp "$AAB_PATH" release_output/Sensei.aab
+          ls -lh release_output/
+
+      - name: Upload APK & AAB as Workflow Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Sensei-APK
-          path: release_apk/Sensei.apk
+          name: Sensei-Android-Builds
+          path: |
+            release_output/Sensei.apk
+            release_output/Sensei.aab
           retention-days: 30
 
-      - name: Publish Direct APK to GitHub Releases
+      - name: Publish APK & AAB to GitHub Releases
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
         with:
-          tag_name: v1.0.0
-          name: "Sensei Android APK v1.0.0"
-          body: "🐊 Sensei BingeLingo Android Uygulaması. Doğrudan telefonunuza kurabilirsiniz!"
+          tag_name: sensei-v3.1-b${{ github.run_number }}
+          name: "Sensei Android v3.1 (Build #${{ github.run_number }})"
+          body: |
+            Sensei BingeLingo Gercek Android Derlemesi (LiteRT-LM 0.16.1 + ML Kit + Native TTS).
+            - Telefonunuza kurmak icin: Sensei.apk
+            - Google Play Store yuklemesi icin: Sensei.aab
           draft: false
           prerelease: false
-          files: release_apk/Sensei.apk
+          make_latest: true
+          files: |
+            release_output/Sensei.apk
+            release_output/Sensei.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

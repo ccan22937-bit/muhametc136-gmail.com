@@ -1,0 +1,7 @@
+{
+  "provider": "google",
+  "modelName": "gemini-3.8-flash",
+  "customApiUrl": "",
+  "apiKey": "",
+  "updatedAt": 1740000000000
+}
